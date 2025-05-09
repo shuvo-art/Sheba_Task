@@ -48,12 +48,12 @@ export class BookingService {
         status: 'pending',
       });
 
-      // Send email notification (bonus feature)
+      // Send email notification (bonus feature, now optional)
       await NotificationService.sendBookingConfirmation(booking, service);
 
       return booking;
     } catch (error: any) {
-      throw new Error(`Failed to create booking: ${error.message}`);
+      throw new Error(error.message); // Remove prefix
     }
   }
 
@@ -61,7 +61,7 @@ export class BookingService {
     try {
       const booking = await Booking.findOne({
         where: { id, userId },
-        include: [{ model: Service, attributes: ['name', 'price'] }],
+        include: [{ model: Service, as: 'service', attributes: ['name', 'price'] }],
       });
 
       if (!booking) {
@@ -70,7 +70,7 @@ export class BookingService {
 
       return booking;
     } catch (error: any) {
-      throw new Error(`Failed to retrieve booking: ${error.message}`);
+      throw new Error(error.message); // Remove prefix
     }
   }
 
@@ -78,8 +78,8 @@ export class BookingService {
     try {
       const bookings = await Booking.findAll({
         include: [
-          { model: Service, attributes: ['name', 'price'] },
-          { model: User, attributes: ['email'] },
+          { model: Service, as: 'service', attributes: ['name', 'price'] },
+          { model: User, as: 'user', attributes: ['email'] },
         ],
       });
       return bookings;

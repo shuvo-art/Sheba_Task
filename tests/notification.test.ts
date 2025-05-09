@@ -15,9 +15,10 @@ describe('NotificationService', () => {
     mockSendMail = jest.fn();
     (nodemailer.createTransport as jest.Mock).mockReturnValue({ sendMail: mockSendMail });
 
-    // Set both EMAIL_USER and EMAIL_PASS for tests
-    process.env.EMAIL_USER = 'test@example.com';
-    process.env.EMAIL_PASS = 'testpassword';
+    // Set Mailgun credentials for tests
+    process.env.MAILGUN_API_KEY = 'test-api-key';
+    process.env.MAILGUN_DOMAIN = 'test-domain';
+    process.env.MAIL_ID = 'test@example.com';
 
     // Reset the transporter in NotificationService to force re-initialization
     (NotificationService as any).transporter = null;
@@ -25,8 +26,9 @@ describe('NotificationService', () => {
 
   afterEach(() => {
     // Reset environment variables after each test
-    process.env.EMAIL_USER = undefined;
-    process.env.EMAIL_PASS = undefined;
+    process.env.MAILGUN_API_KEY = undefined;
+    process.env.MAILGUN_DOMAIN = undefined;
+    process.env.MAIL_ID = undefined;
   });
 
   it('should send booking confirmation email', async () => {
@@ -54,14 +56,14 @@ describe('NotificationService', () => {
     });
   });
 
-  it('should throw error if EMAIL_USER or EMAIL_PASS is missing', async () => {
+  it('should throw error if MAILGUN_API_KEY or MAILGUN_DOMAIN is missing', async () => {
     // Store original values
-    const originalEmailUser = process.env.EMAIL_USER;
-    const originalEmailPass = process.env.EMAIL_PASS;
+    const originalApiKey = process.env.MAILGUN_API_KEY;
+    const originalDomain = process.env.MAILGUN_DOMAIN;
 
-    // Set EMAIL_USER and EMAIL_PASS to empty strings to trigger the error
-    process.env.EMAIL_USER = '';
-    process.env.EMAIL_PASS = '';
+    // Set MAILGUN_API_KEY and MAILGUN_DOMAIN to empty strings to trigger the error
+    process.env.MAILGUN_API_KEY = '';
+    process.env.MAILGUN_DOMAIN = '';
 
     // Reset the transporter to force re-initialization with new env vars
     (NotificationService as any).transporter = null;
@@ -80,16 +82,16 @@ describe('NotificationService', () => {
 
     await expect(
       NotificationService.sendBookingConfirmation(booking, service)
-    ).rejects.toThrow('Email configuration missing: EMAIL_USER or EMAIL_PASS not set');
+    ).rejects.toThrow('Email configuration missing: MAILGUN_API_KEY or MAILGUN_DOMAIN not set');
 
     // Restore original values
-    process.env.EMAIL_USER = originalEmailUser;
-    process.env.EMAIL_PASS = originalEmailPass;
+    process.env.MAILGUN_API_KEY = originalApiKey;
+    process.env.MAILGUN_DOMAIN = originalDomain;
   });
 
   it('should throw error if email send fails', async () => {
-    // Set mock to reject with an SMTP error
-    mockSendMail.mockRejectedValue(new Error('SMTP error'));
+    // Set mock to reject with an error
+    mockSendMail.mockRejectedValue(new Error('Mailgun error'));
 
     const booking = {
       id: 1,
@@ -105,6 +107,6 @@ describe('NotificationService', () => {
 
     await expect(
       NotificationService.sendBookingConfirmation(booking, service)
-    ).rejects.toThrow('Failed to send booking confirmation: SMTP error');
+    ).rejects.toThrow('Failed to send booking confirmation: Mailgun error');
   });
 });

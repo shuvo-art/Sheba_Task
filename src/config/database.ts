@@ -7,7 +7,9 @@ const isTestEnv = process.env.NODE_ENV === 'test';
 
 // Use SQLite for tests, otherwise use the DATABASE_URL
 const sequelize = isTestEnv
-  ? new Sequelize('sqlite:memory:', {
+  ? new Sequelize({
+      dialect: 'sqlite',
+      storage: ':memory:', // Explicitly use in-memory storage for SQLite
       logging: false,
     })
   : new Sequelize(process.env.DATABASE_URL || 'postgres://user:password@localhost:5432/sheba', {
@@ -37,9 +39,19 @@ export async function initDatabase() {
     Service.hasMany(Booking, { foreignKey: 'serviceId', as: 'bookings' });
     Booking.belongsTo(Service, { foreignKey: 'serviceId', as: 'service' });
 
+    // Disable foreign key checks for SQLite during sync (test environment)
+    if (isTestEnv) {
+      await sequelize.query('PRAGMA foreign_keys = OFF;');
+    }
+
     // Sync database with proper table creation order
     await sequelize.sync({ force: process.env.NODE_ENV === 'test' });
     console.log('Database models synchronized');
+
+    // Re-enable foreign key checks after sync
+    if (isTestEnv) {
+      await sequelize.query('PRAGMA foreign_keys = ON;');
+    }
   } catch (error) {
     console.error('Database connection error:', error);
     throw error;

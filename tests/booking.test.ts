@@ -1,21 +1,13 @@
 import supertest from 'supertest';
 import app from '../src/app';
-import { sequelize } from '../src/config/database';
 import { Booking } from '../src/modules/booking/booking.model';
 import { Service } from '../src/modules/service/service.model';
 import { User } from '../src/modules/user/user.model';
 import * as jwt from 'jsonwebtoken';
 import * as bcrypt from 'bcrypt';
+import { sequelize } from '../src/config/database';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'test-secret';
-
-beforeAll(async () => {
-  await sequelize.sync({ force: true });
-});
-
-afterAll(async () => {
-  await sequelize.close();
-});
 
 describe('Booking API', () => {
   let adminToken: string;
@@ -25,27 +17,34 @@ describe('Booking API', () => {
   let service: any;
 
   beforeEach(async () => {
-    admin = await User.create({
-      email: 'admin@example.com',
-      password: await bcrypt.hash('password', 10),
-      role: 'admin',
-    });
+    try {
+      await sequelize.sync({ force: true });
 
-    user = await User.create({
-      email: 'user@example.com',
-      password: await bcrypt.hash('password', 10),
-      role: 'user',
-    });
+      admin = await User.create({
+        email: 'admin@example.com',
+        password: await bcrypt.hash('password', 10),
+        role: 'admin',
+      });
 
-    adminToken = jwt.sign({ id: admin.id, role: admin.role }, JWT_SECRET);
-    userToken = jwt.sign({ id: user.id, role: user.role }, JWT_SECRET);
+      user = await User.create({
+        email: 'user@example.com',
+        password: await bcrypt.hash('password', 10),
+        role: 'user',
+      });
 
-    service = await Service.create({
-      name: 'Test Service',
-      category: 'Test',
-      price: 100,
-      description: 'Test description',
-    });
+      adminToken = jwt.sign({ id: admin.id, role: admin.role }, JWT_SECRET);
+      userToken = jwt.sign({ id: user.id, role: user.role }, JWT_SECRET);
+
+      service = await Service.create({
+        name: 'Test Service',
+        category: 'Test',
+        price: 100,
+        description: 'Test description',
+      });
+    } catch (error) {
+      console.error('Error in beforeEach:', error);
+      throw error;
+    }
   });
 
   describe('POST /api/bookings', () => {
@@ -133,7 +132,7 @@ describe('Booking API', () => {
         .expect(400);
 
       expect(response.body.success).toBe(false);
-      expect(response.body.message).toBe('Failed to create booking: Schedule date/time must be in the future');
+      expect(response.body.message).toBe('Schedule date/time must be in the future'); // Updated to match new error message
     });
   });
 

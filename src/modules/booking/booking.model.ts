@@ -36,10 +36,18 @@ export class Booking extends Model {
         serviceId: {
           type: DataTypes.INTEGER,
           allowNull: false,
+          references: {
+            model: 'services',
+            key: 'id',
+          },
         },
         userId: {
           type: DataTypes.INTEGER,
           allowNull: false,
+          references: {
+            model: 'users',
+            key: 'id',
+          },
         },
         status: {
           type: DataTypes.ENUM('pending', 'confirmed', 'cancelled'),

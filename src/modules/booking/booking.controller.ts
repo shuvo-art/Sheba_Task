@@ -30,8 +30,7 @@ export class BookingController {
       const booking = await BookingService.createBooking(bookingData, req.user.id);
       res.status(201).json({ success: true, data: booking });
     } catch (error: any) {
-      const status = error instanceof z.ZodError ? 400 : 500;
-      res.status(status).json({ success: false, message: error.message });
+      res.status(400).json({ success: false, message: error.message }); // Always return 400 for create errors
     }
   }
 

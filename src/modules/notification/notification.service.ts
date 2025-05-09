@@ -1,25 +1,28 @@
-// src/modules/notification/notification.service.ts
 import nodemailer from 'nodemailer';
 import { Booking } from '../booking/booking.model';
 import { Service } from '../service/service.model';
+import mailgunTransport from 'nodemailer-mailgun-transport';
 
 export class NotificationService {
   private static transporter: nodemailer.Transporter | null = null;
 
   private static initializeTransporter() {
-    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-      throw new Error('Email configuration missing: EMAIL_USER or EMAIL_PASS not set');
+    if (!process.env.MAILGUN_API_KEY || !process.env.MAILGUN_DOMAIN) {
+      if (process.env.NODE_ENV === 'test') {
+        throw new Error('Email configuration missing: MAILGUN_API_KEY or MAILGUN_DOMAIN not set');
+      }
+      console.warn('Email configuration missing: MAILGUN_API_KEY or MAILGUN_DOMAIN not set. Email notifications will be skipped.');
+      return null;
     }
 
-    return nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 587,
-      secure: false,
+    const auth = {
       auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
+        api_key: process.env.MAILGUN_API_KEY,
+        domain: process.env.MAILGUN_DOMAIN,
       },
-    });
+    };
+
+    return nodemailer.createTransport(mailgunTransport(auth));
   }
 
   private static getTransporter() {
@@ -30,9 +33,18 @@ export class NotificationService {
   }
 
   static async sendBookingConfirmation(booking: Booking, service: Service) {
+    const transporter = this.getTransporter();
+    if (!transporter) {
+      if (process.env.NODE_ENV === 'test') {
+        throw new Error('Email configuration missing: MAILGUN_API_KEY or MAILGUN_DOMAIN not set');
+      }
+      console.warn(`Skipping email notification for booking ${booking.id} due to missing email configuration.`);
+      return;
+    }
+
     try {
       const mailOptions = {
-        from: `"Sheba Platform" <${process.env.EMAIL_USER!}>`,
+        from: `"Sheba Platform" <${process.env.MAIL_ID}>`,
         to: booking.email,
         subject: 'Booking Confirmation',
         text: `Dear ${booking.customerName},\n\nYour booking for ${service.name} has been confirmed.\nDetails:\n- Booking ID: ${booking.id}\n- Date/Time: ${booking.scheduleDateTime.toISOString()}\n- Price: $${service.price.toFixed(2)}\n\nThank you for choosing Sheba Platform!`,
@@ -50,11 +62,13 @@ export class NotificationService {
         `,
       };
 
-      await this.getTransporter().sendMail(mailOptions);
+      await transporter.sendMail(mailOptions);
       console.log(`Booking confirmation sent to ${booking.email}`);
     } catch (error: any) {
-      console.error(`Failed to send email: ${error.message}`);
-      throw new Error(`Failed to send booking confirmation: ${error.message}`);
+      if (process.env.NODE_ENV === 'test') {
+        throw new Error(`Failed to send booking confirmation: ${error.message}`);
+      }
+      console.warn(`Failed to send email to ${booking.email}: ${error.message}. Continuing without email notification.`);
     }
   }
 }

@@ -1,20 +1,12 @@
 import supertest from 'supertest';
 import app from '../src/app';
-import { sequelize } from '../src/config/database';
 import { Service } from '../src/modules/service/service.model';
 import { User } from '../src/modules/user/user.model';
 import * as jwt from 'jsonwebtoken';
 import * as bcrypt from 'bcrypt';
+import { sequelize } from '../src/config/database'; // Import sequelize to ensure sync
 
 const JWT_SECRET = process.env.JWT_SECRET || 'test-secret';
-
-beforeAll(async () => {
-  await sequelize.sync({ force: true });
-});
-
-afterAll(async () => {
-  await sequelize.close();
-});
 
 describe('Service API', () => {
   let adminToken: string;
@@ -22,20 +14,28 @@ describe('Service API', () => {
   let admin: any;
 
   beforeEach(async () => {
-    admin = await User.create({
-      email: 'admin@example.com',
-      password: await bcrypt.hash('password', 10),
-      role: 'admin',
-    });
+    try {
+      // Ensure database is synced before creating records
+      await sequelize.sync({ force: true });
 
-    const user = await User.create({
-      email: 'user@example.com',
-      password: await bcrypt.hash('password', 10),
-      role: 'user',
-    });
+      admin = await User.create({
+        email: 'admin@example.com',
+        password: await bcrypt.hash('password', 10),
+        role: 'admin',
+      });
 
-    adminToken = jwt.sign({ id: admin.id, role: admin.role }, JWT_SECRET);
-    userToken = jwt.sign({ id: user.id, role: user.role }, JWT_SECRET);
+      const user = await User.create({
+        email: 'user@example.com',
+        password: await bcrypt.hash('password', 10),
+        role: 'user',
+      });
+
+      adminToken = jwt.sign({ id: admin.id, role: admin.role }, JWT_SECRET);
+      userToken = jwt.sign({ id: user.id, role: user.role }, JWT_SECRET);
+    } catch (error) {
+      console.error('Error in beforeEach:', error);
+      throw error; // Re-throw to fail the test if setup fails
+    }
   });
 
   describe('GET /api/services', () => {
@@ -141,7 +141,7 @@ describe('Service API', () => {
         .expect(400);
 
       expect(response.body.success).toBe(false);
-      expect(response.body.message).toContain('Invalid');
+      expect(response.body.message).toContain('String must contain at least 1 character(s)'); // Match actual validation error
     });
   });
 
