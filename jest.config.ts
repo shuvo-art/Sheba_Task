@@ -6,11 +6,9 @@ export default {
     testMatch: ['**/*.test.ts'],
     moduleFileExtensions: ['ts', 'js', 'json', 'node'],
     transform: {
-      '^.+\\.ts$': 'ts-jest'
+      '^.+\\.ts$': ['ts-jest', {
+        tsconfig: 'tsconfig.test.json',
+      }],
     },
-    globals: {
-      'ts-jest': {
-        tsconfig: 'tsconfig.test.json'
-      }
-    }
+    setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'], // Add this line
   };

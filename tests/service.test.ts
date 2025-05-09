@@ -22,7 +22,6 @@ describe('Service API', () => {
   let admin: any;
 
   beforeEach(async () => {
-    // Create test users
     admin = await User.create({
       email: 'admin@example.com',
       password: await bcrypt.hash('password', 10),
@@ -35,7 +34,6 @@ describe('Service API', () => {
       role: 'user',
     });
 
-    // Generate JWTs
     adminToken = jwt.sign({ id: admin.id, role: admin.role }, JWT_SECRET);
     userToken = jwt.sign({ id: user.id, role: user.role }, JWT_SECRET);
   });

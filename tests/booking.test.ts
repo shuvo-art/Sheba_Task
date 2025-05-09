@@ -128,8 +128,8 @@ describe('Booking API', () => {
           email: 'john.doe@example.com',
           phoneNumber: '1234567890',
           serviceId: service.id,
-  scheduleDateTime: '2020-01-01T10:00:00Z',
-})
+          scheduleDateTime: '2020-01-01T10:00:00Z',
+        })
         .expect(400);
 
       expect(response.body.success).toBe(false);
